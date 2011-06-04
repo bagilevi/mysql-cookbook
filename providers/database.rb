@@ -47,7 +47,42 @@ action :create_db do
   unless exists?
     begin
       Chef::Log.info "mysql_database: Creating database #{new_resource.database}"
-      db.query("create database #{new_resource.database}")
+      sql = "CREATE DATABASE #{new_resource.database}"
+      sql << " CHARACTER SET = #{new_resource.charset}" if new_resource.charset
+      sql << " COLLATE = #{new_resource.collate}" if new_resource.collate
+      db.query(sql)
+      new_resource.updated_by_last_action(true)
+    ensure
+      db.close
+    end
+  end
+end
+
+action :create_user do
+  if exists?
+    begin
+      Chef::Log.info "mysql_database: Creating user #{new_resource.new_username}"
+
+      user_exists = db.query("SELECT COUNT(*) AS c FROM mysql.user " <<
+                             "WHERE User = '#{new_resource.new_username}'"
+                            ).fetch_row.first.to_i == 1
+      if user_exists
+        sql = "SET PASSWORD FOR '#{new_resource.new_username}'@'#{new_resource.host}' " <<
+              "= PASSWORD('#{Mysql.quote(new_resource.new_password)}')"
+        db.query(sql)
+      else
+        sql = "CREATE USER '#{new_resource.new_username}'@'#{new_resource.host}' " <<
+              "IDENTIFIED BY '#{Mysql.quote(new_resource.new_password)}'"
+        db.query(sql)
+      end
+
+      if new_resource.grant
+        Chef::Log.info "mysql_database: Granting access for #{new_resource.new_username}"
+        sql = "GRANT #{new_resource.grant} ON #{new_resource.database}.* TO " <<
+              " '#{new_resource.new_username}'@'#{new_resource.host}'"
+        db.query(sql)
+      end
+
       new_resource.updated_by_last_action(true)
     ensure
       db.close

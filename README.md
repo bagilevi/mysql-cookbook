@@ -26,7 +26,8 @@ The cookbook contains a LWRP, `mysql_database` which can be used to manage datab
 
 * `flush_tables_with_read_lock` - sends the sql command "flush tables with read lock", used for setting up mysql master/slave replication.
 * `unflush_tables` - sends the sql command "unflush tables", used for setting up master/slave replication.
-* `create_db` - specify a database to be created.
+* `create_db` - specify a database to be created, optionally: charset, collate
+* `create_user` - specify a new_username, new_password, optionally: `grant 'all'`
 * `query` - send an arbitrary query to the database, this should be used with care. Pass the SQL statement to use with the `sql` resource attribute.
 
 For example see the USAGE section below.
